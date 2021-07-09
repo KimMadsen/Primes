@@ -13,6 +13,9 @@ uses
   Math,
   Windows;
 
+var
+	MyDict : TDictionary<NativeInt, NativeInt>;
+
 type
 	TPrimeSieve = class
 	private
@@ -20,12 +23,10 @@ type
 		FSieveSize2: NativeInt;
 		FSieveSizeSqrt: NativeInt;
 		FBitArray: array of ByteBool; //ByteBool: 4644. WordBool: 4232. LongBool: 3673
-		FMyDict: TDictionary<NativeInt, NativeInt>;
 
 		procedure InitializeBits;
 	public
 		constructor Create(Size: Integer);
-		destructor Destroy; override;
 
 		procedure RunSieve; // Calculate the primes up to the specified limit
 
@@ -51,26 +52,6 @@ begin
 	//GetBit and SetBit do the work of "div 2"
 	SetLength(FBitArray, FSieveSize2);
 	InitializeBits;
-
-	FMyDict := TDictionary<NativeInt, NativeInt>.Create;
-
-	// Historical data for validating our results - the number of primes
-	// to be found under some limit, such as 168 primes under 1000
-	FMyDict.Add(       10, 4); //nobody noticed that 1 is wrong? [2, 3, 5, 7]
-	FMyDict.Add(      100, 25);
-	FMyDict.Add(     1000, 168);
-	FMyDict.Add(    10000, 1229);
-	FMyDict.Add(   100000, 9592);
-	FMyDict.Add(  1000000, 78498);
-	FMyDict.Add( 10000000, 664579);
-	FMyDict.Add(100000000, 5761455);
-end;
-
-destructor TPrimeSieve.Destroy;
-begin
-	FreeAndNil(FMyDict);
-
-	inherited;
 end;
 
 function TPrimeSieve.CountPrimes: Integer;
@@ -90,8 +71,8 @@ end;
 
 function TPrimeSieve.ValidateResults: Boolean;
 begin
-	if FMyDict.ContainsKey(FSieveSize) then
-		Result := FMyDict[FSieveSize] = Self.CountPrimes
+	if MyDict.ContainsKey(FSieveSize) then
+		Result := MyDict[FSieveSize] = Self.CountPrimes
 	else
 		Result := False;
 end;
@@ -215,6 +196,22 @@ begin
 		sieve.PrintResults(False, tD.TotalSeconds, passes);
 end;
 
+Procedure InitStaticDictionary;
+begin
+	MyDict := TDictionary<NativeInt, NativeInt>.Create;
+
+	// Historical data for validating our results - the number of primes
+	// to be found under some limit, such as 168 primes under 1000
+	MyDict.Add(       10, 4); //nobody noticed that 1 is wrong? [2, 3, 5, 7]
+	MyDict.Add(      100, 25);
+	MyDict.Add(     1000, 168);
+	MyDict.Add(    10000, 1229);
+	MyDict.Add(   100000, 9592);
+	MyDict.Add(  1000000, 78498);
+	MyDict.Add( 10000000, 664579);
+	MyDict.Add(100000000, 5761455);
+end;
+
 {
 	Intel Core i5-9400 @ 2.90 GHz
 	- 32-bit: 4,809 passes
@@ -236,6 +233,7 @@ end;
 }
 begin
 	try
+    InitStaticDictionary;
 		Main;
 		WriteLn('Press enter to close...');
 		Readln;
