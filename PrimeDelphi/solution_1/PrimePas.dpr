@@ -17,14 +17,20 @@ var
 	MyDict : TDictionary<NativeInt, NativeInt>;
 
 type
+  ReverseByteBool = ByteBool;
+
+  TReverseByteBoolHelper = Record Helper for ReverseByteBool
+    function AsBool: ByteBool;
+    procedure SetBool(ABool: ByteBool);
+  End;
+
 	TPrimeSieve = class
 	private
 		FSieveSize: NativeInt;
 		FSieveSize2: NativeInt;
 		FSieveSizeSqrt: NativeInt;
-		FBitArray: array of ByteBool; //ByteBool: 4644. WordBool: 4232. LongBool: 3673
+		FBitArray: array of ByteBool;
 
-		procedure InitializeBits;
 	public
 		constructor Create(Size: Integer);
 
@@ -49,24 +55,16 @@ begin
 	//The optimization here is that we only store bits for *odd* numbers.
 	// So FBitArray[3] is if 3 is prime
 	// and FBitArray[4] is if 5 is prime
-	//GetBit and SetBit do the work of "div 2"
 	SetLength(FBitArray, FSieveSize2);
-	InitializeBits;
 end;
 
 function TPrimeSieve.CountPrimes: Integer;
 var
-	count: NativeInt;
 	i: NativeInt;
 begin
-	count := 0;
+	Result := 0;
 	for i := 0 to High(FBitArray) do
-	begin
-		if FBitArray[i] then
-			Inc(count);
-	end;
-
-	Result := count;
+   	if (not FBitArray[i]) then Inc(Result);  // remember logic is reversed
 end;
 
 function TPrimeSieve.ValidateResults: Boolean;
@@ -75,34 +73,6 @@ begin
 		Result := MyDict[FSieveSize] = Self.CountPrimes
 	else
 		Result := False;
-end;
-
-procedure TPrimeSieve.InitializeBits;
-var
-	i: NativeInt;
-	remaining: NativeInt;
-begin
-	remaining := Length(FBitArray);
-	i := 0;
-	while remaining >= 8 do
-	begin
-		FBitArray[i]   := True;
-		FBitArray[i+1] := True;
-		FBitArray[i+2] := True;
-		FBitArray[i+3] := True;
-		FBitArray[i+4] := True;
-		FBitArray[i+5] := True;
-		FBitArray[i+6] := True;
-		FBitArray[i+7] := True;
-		Inc(i, 8);
-		Dec(remaining, 8);
-	end;
-	while remaining > 0 do
-	begin
-		FBitArray[i] := True;
-		Inc(i);
-		Dec(remaining);
-	end;
 end;
 
 procedure TPrimeSieve.RunSieve;
@@ -119,7 +89,7 @@ begin
 		num:=factor SHR 1;
 		while num<FSieveSize2 do
 		begin
-			if FBitArray[num] then
+			if (not FBitArray[num]) then   // logic is reversed to avoid initializer
 			begin
 				factor := (num SHL 1) OR r;
 				Break;
@@ -131,7 +101,7 @@ begin
 		num := factor*3 SHR 1;
 		while num<=FSieveSize2 do
 		begin
-			FBitArray[num]:=False;
+			FBitArray[num]:=true;  // logic is reversed.
 			Inc(num,factor);
 		end;
 
@@ -154,7 +124,7 @@ begin
 	begin
 		if (num and $1 = $1) then
 		begin
-			if FBitArray[num div 2] then
+			if not FBitArray[num div 2] then
 			begin
 				if ShowResults then
 					Write(IntToStr(num) + ', ');
@@ -181,7 +151,7 @@ begin
 	passes := 0;
 
 	sieve := nil;
-	while TTimeSpan.Subtract(Now, dtStart).TotalSeconds < 10 do
+	while TTimeSpan.Subtract(Now, dtStart).TotalSeconds < 5 do
 	begin
 		if Assigned(sieve) then
 			sieve.Free;
@@ -212,6 +182,18 @@ begin
 	MyDict.Add(100000000, 5761455);
 end;
 
+{ TReverseByteBoolHelper }
+
+function TReverseByteBoolHelper.AsBool: ByteBool;
+begin
+  result := not self;
+end;
+
+procedure TReverseByteBoolHelper.SetBool(ABool: ByteBool);
+begin
+  self := not ABool;
+end;
+
 {
 	Intel Core i5-9400 @ 2.90 GHz
 	- 32-bit: 4,809 passes
@@ -230,6 +212,16 @@ end;
   - 64-bit: DEAD SLOW of some reason
   Further optimizations:
   - 32-bit: 8,600+ passes
+
+  Optimization of Kim's code by glenkleidon
+  - Made the History class static (as it is in the c++ because define as a const)
+  - The initializer for Delphi ByteBool by default sets to false
+    previous implementation initialized every value to true first,
+    but a better optimization is to simply reverse the logic - false = true/
+     true=false so there is no need to initialize the array.
+    Techically Delphi could have used a call to
+       FillChar(FBitArray[0],FSieveSize2,1);
+    but dynamic arrays MAY not be contiguous and therefore not safe.
 }
 begin
 	try
