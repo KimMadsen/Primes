@@ -81,7 +81,7 @@ begin
 	begin
 		r:=factor AND $1;
 		num:=factor SHR 1;
-		while num<FSieveSize2 do
+		while num<FSieveSizeSqrt do
 		begin
 			if (not FBitArray[num]) then   // logic is reversed to avoid initializer
 			begin
