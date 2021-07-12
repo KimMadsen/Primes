@@ -17,12 +17,6 @@ var
 	MyDict : TDictionary<NativeInt, NativeInt>;
 
 type
-  ReverseByteBool = ByteBool;
-
-  TReverseByteBoolHelper = Record Helper for ReverseByteBool
-    function AsBool: ByteBool;
-    procedure SetBool(ABool: ByteBool);
-  End;
 
 	TPrimeSieve = class
 	private
@@ -180,18 +174,6 @@ begin
 	MyDict.Add(  1000000, 78498);
 	MyDict.Add( 10000000, 664579);
 	MyDict.Add(100000000, 5761455);
-end;
-
-{ TReverseByteBoolHelper }
-
-function TReverseByteBoolHelper.AsBool: ByteBool;
-begin
-  result := not self;
-end;
-
-procedure TReverseByteBoolHelper.SetBool(ABool: ByteBool);
-begin
-  self := not ABool;
 end;
 
 {
